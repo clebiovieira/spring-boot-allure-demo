@@ -1,0 +1,28 @@
+[
+  {
+    "name": "Ignored tests",
+    "matchedStatuses": ["skipped"]
+  },
+  {
+    "name": "API errors",
+    "messageRegex": ".*Error connecting to the API.*"
+  },
+  {
+    "name": "Assertion failures",
+    "messageRegex": ".*AssertionError.*"
+  },
+  {
+    "name": "Validation errors",
+    "messageRegex": ".*ValidationException.*"
+  },
+  {
+    "name": "Infrastructure problems",
+    "matchedStatuses": ["broken"],
+    "messageRegex": ".*ConnectionException.*"
+  },
+  {
+    "name": "Other errors",
+    "matchedStatuses": ["broken"],
+    "messageRegex": ".*"
+  }
+]
