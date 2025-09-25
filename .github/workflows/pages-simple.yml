@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "**" ]  # Executa em qualquer branch
   workflow_dispatch:
 
 permissions:
@@ -18,7 +18,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout current branch
         uses: actions/checkout@v4
         
       - name: Set up JDK 21
@@ -40,87 +40,305 @@ jobs:
       - name: Generate Allure Report
         run: mvn allure:report
         
-      - name: Create directory structure for GitHub Pages
+      - name: Download existing GitHub Pages
+        continue-on-error: true
         run: |
+          # Estratégia melhorada: usar GitHub API para baixar conteúdo atual
+          echo "🔄 Tentando preservar relatórios existentes..."
+          
+          # Método 1: Tentar baixar via GitHub Pages URL
+          if curl -s -f -L "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" > /dev/null; then
+            echo "📥 GitHub Pages site encontrado, baixando estrutura..."
+            
+            # Cria diretório temporário para download
+            mkdir -p temp-pages
+            cd temp-pages
+            
+            # Baixa o index.html atual para extrair lista de branches
+            curl -s -L "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" -o current-index.html || echo "Failed to download index"
+            
+            # Extrai branches existentes do HTML (busca por links para diretórios)
+            if [ -f current-index.html ]; then
+              grep -oP 'href="\.\/[^"]+\/"' current-index.html | sed 's/href="\.\/\([^"]*\)\/"/\1/' > ../existing-branches.txt || echo "No branches found in index"
+            fi
+            
+            cd ..
+            rm -rf temp-pages
+            
+            # Tenta baixar cada branch existente
+            if [ -f existing-branches.txt ]; then
+              echo "📋 Branches encontradas:"
+              cat existing-branches.txt
+              
+              mkdir -p ./pages-output
+              while IFS= read -r branch; do
+                if [ ! -z "$branch" ] && [ "$branch" != "${{ github.ref_name }}" ]; then
+                  echo "⬇️  Baixando relatório da branch: $branch"
+                  mkdir -p "./pages-output/$branch"
+                  
+                  # Tenta baixar o index.html da branch para verificar se existe
+                  if curl -s -f -L "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/$branch/index.html" -o "./pages-output/$branch/index.html"; then
+                    echo "✅ Branch $branch preservada"
+                    
+                    # Baixa outros arquivos essenciais do Allure
+                    curl -s -f -L "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/$branch/app.js" -o "./pages-output/$branch/app.js" || echo "app.js not found for $branch"
+                    curl -s -f -L "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/$branch/styles.css" -o "./pages-output/$branch/styles.css" || echo "styles.css not found for $branch"
+                    
+                    # Tenta baixar a pasta data (contém os dados do relatório)
+                    mkdir -p "./pages-output/$branch/data"
+                    curl -s -f -L "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/$branch/data/suites.json" -o "./pages-output/$branch/data/suites.json" || echo "suites.json not found for $branch"
+                  else
+                    echo "❌ Falha ao baixar branch $branch"
+                    rm -rf "./pages-output/$branch"
+                  fi
+                fi
+              done < existing-branches.txt
+            fi
+          else
+            echo "ℹ️  Nenhum site GitHub Pages encontrado ainda - primeira execução"
+          fi
+        
+      - name: Create/Update directory structure for GitHub Pages
+        run: |
+          # Cria estrutura base se não existir
+          mkdir -p ./pages-output
+          
+          # Cria/atualiza diretório da branch atual
+          echo "🔄 Processando branch: ${{ github.ref_name }}"
           mkdir -p ./pages-output/${{ github.ref_name }}
           cp -r ./target/allure-report/* ./pages-output/${{ github.ref_name }}/
           
-      - name: Create index page
+          # Adiciona timestamp ao relatório da branch
+          echo "$(date -u '+%Y-%m-%d %H:%M:%S UTC')" > ./pages-output/${{ github.ref_name }}/timestamp.txt
+          
+          echo "✅ Updated report for branch: ${{ github.ref_name }}"
+          echo "📁 Current structure:"
+          find ./pages-output -type d | head -20
+          
+          # Lista todas as branches disponíveis para o index
+          echo "📋 Generating branch list..."
+          ls -1 ./pages-output/ | grep -v "index.html" | sort > available-branches.txt
+          echo "Available branches:"
+          cat available-branches.txt
+          
+      - name: Create dynamic index page
         run: |
           cat > ./pages-output/index.html << 'EOF'
           <!DOCTYPE html>
           <html>
           <head>
               <title>Allure Reports - Spring Boot Demo</title>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
               <style>
                   body { 
                       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
                       margin: 40px auto; 
-                      max-width: 800px; 
-                      background: #f8f9fa;
+                      max-width: 900px; 
+                      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                      min-height: 100vh;
+                      padding: 20px;
+                      box-sizing: border-box;
                   }
                   .container { 
                       background: white; 
                       padding: 40px; 
-                      border-radius: 8px; 
-                      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                      border-radius: 12px; 
+                      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
                   }
-                  h1 { color: #2c3e50; margin-bottom: 30px; }
+                  h1 { 
+                      color: #2c3e50; 
+                      margin-bottom: 10px;
+                      font-size: 2.5em;
+                      text-align: center;
+                  }
+                  .subtitle {
+                      text-align: center;
+                      color: #7f8c8d;
+                      margin-bottom: 40px;
+                      font-size: 1.1em;
+                  }
                   .branch-list { list-style: none; padding: 0; }
                   .branch-item { 
-                      margin: 15px 0; 
-                      padding: 20px; 
-                      border: 1px solid #e1e8ed; 
-                      border-radius: 6px; 
-                      background: #f8f9fa;
-                      transition: all 0.2s;
+                      margin: 20px 0; 
+                      padding: 25px; 
+                      border: 2px solid #e1e8ed; 
+                      border-radius: 10px; 
+                      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                      transition: all 0.3s ease;
+                      position: relative;
+                      overflow: hidden;
                   }
                   .branch-item:hover { 
-                      background: #e9ecef; 
-                      transform: translateY(-1px);
-                      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                      background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+                      transform: translateY(-3px);
+                      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+                      border-color: #2196f3;
+                  }
+                  .branch-item::before {
+                      content: '';
+                      position: absolute;
+                      top: 0;
+                      left: 0;
+                      width: 4px;
+                      height: 100%;
+                      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                   }
                   .branch-item a { 
                       text-decoration: none; 
-                      color: #0366d6; 
+                      color: #1565c0; 
                       font-weight: 600;
-                      font-size: 18px;
+                      font-size: 20px;
+                      display: block;
+                      margin-bottom: 8px;
                   }
-                  .branch-item a:hover { text-decoration: underline; }
-                  .description { color: #586069; margin-top: 8px; }
+                  .branch-item a:hover { 
+                      text-decoration: underline; 
+                      color: #0d47a1;
+                  }
+                  .description { 
+                      color: #546e7a; 
+                      margin: 8px 0;
+                      font-size: 14px;
+                  }
                   .timestamp { 
-                      color: #6a737d; 
-                      font-size: 14px; 
-                      margin-top: 10px;
+                      color: #78909c; 
+                      font-size: 13px; 
+                      margin-top: 12px;
                       font-style: italic;
+                      display: flex;
+                      align-items: center;
+                      gap: 5px;
+                  }
+                  .timestamp::before {
+                      content: '🕒';
+                  }
+                  .branch-badge {
+                      display: inline-block;
+                      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                      color: white;
+                      padding: 4px 12px;
+                      border-radius: 20px;
+                      font-size: 12px;
+                      font-weight: 500;
+                      margin-left: 10px;
+                  }
+                  .stats {
+                      background: #f8f9fa;
+                      padding: 20px;
+                      border-radius: 8px;
+                      margin: 30px 0;
+                      text-align: center;
+                      border-left: 4px solid #667eea;
+                  }
+                  .stats h3 {
+                      margin: 0 0 10px 0;
+                      color: #2c3e50;
                   }
                   .footer { 
                       text-align: center; 
-                      margin-top: 40px; 
-                      padding-top: 20px; 
-                      border-top: 1px solid #e1e8ed;
+                      margin-top: 50px; 
+                      padding-top: 30px; 
+                      border-top: 2px solid #e1e8ed;
                       color: #6a737d;
+                  }
+                  .footer strong {
+                      color: #2c3e50;
+                  }
+                  .no-branches {
+                      text-align: center;
+                      padding: 40px;
+                      color: #6c757d;
+                      font-style: italic;
+                  }
+                  @media (max-width: 768px) {
+                      body { margin: 20px; padding: 10px; }
+                      .container { padding: 20px; }
+                      h1 { font-size: 2em; }
                   }
               </style>
           </head>
           <body>
               <div class="container">
                   <h1>🧪 Allure Test Reports</h1>
-                  <p>Relatórios de teste da branch principal:</p>
+                  <p class="subtitle">Relatórios de teste automatizados por branch</p>
+          EOF
+          
+          # Gera lista dinâmica de branches
+          if [ -f available-branches.txt ] && [ -s available-branches.txt ]; then
+            # Conta o número de branches
+            branch_count=$(wc -l < available-branches.txt)
+            
+            cat >> ./pages-output/index.html << EOF
+                  <div class="stats">
+                      <h3>📊 Estatísticas</h3>
+                      <p><strong>$branch_count</strong> branch(es) com relatórios disponíveis</p>
+                      <p>Última atualização: $(date -u '+%Y-%m-%d %H:%M:%S UTC')</p>
+                  </div>
                   <ul class="branch-list">
+          EOF
+            
+            # Gera item para cada branch
+            while IFS= read -r branch; do
+              if [ ! -z "$branch" ]; then
+                # Lê timestamp se existir
+                timestamp="Não disponível"
+                if [ -f "./pages-output/$branch/timestamp.txt" ]; then
+                  timestamp=$(cat "./pages-output/$branch/timestamp.txt")
+                fi
+                
+                # Define descrição baseada no nome da branch
+                description="Relatório de testes da branch"
+                badge_text="Branch"
+                if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
+                  description="Branch principal - Ambiente de produção"
+                  badge_text="Principal"
+                elif [ "$branch" = "develop" ] || [ "$branch" = "dev" ]; then
+                  description="Branch de desenvolvimento - Ambiente de teste"
+                  badge_text="Desenvolvimento"
+                elif [[ "$branch" == feature/* ]]; then
+                  description="Feature branch - Nova funcionalidade"
+                  badge_text="Feature"
+                elif [[ "$branch" == hotfix/* ]]; then
+                  description="Hotfix branch - Correção urgente"
+                  badge_text="Hotfix"
+                fi
+                
+                cat >> ./pages-output/index.html << EOF
                       <li class="branch-item">
-                          <a href="./main/">📋 Main Branch</a>
-                          <div class="description">Branch principal - Ambiente de produção</div>
-                          <div class="timestamp">Última atualização: $(date)</div>
+                          <a href="./$branch/">📋 $branch</a>
+                          <span class="branch-badge">$badge_text</span>
+                          <div class="description">$description</div>
+                          <div class="timestamp">Última atualização: $timestamp</div>
                       </li>
+          EOF
+              fi
+            done < available-branches.txt
+            
+            cat >> ./pages-output/index.html << 'EOF'
                   </ul>
+          EOF
+          else
+            cat >> ./pages-output/index.html << 'EOF'
+                  <div class="no-branches">
+                      <p>🔍 Nenhum relatório encontrado ainda.</p>
+                      <p>Os relatórios aparecerão aqui após a execução dos testes.</p>
+                  </div>
+          EOF
+          fi
+          
+          # Finaliza o HTML
+          cat >> ./pages-output/index.html << 'EOF'
                   <div class="footer">
                       <p>🚀 Powered by <strong>Allure Framework</strong> & <strong>GitHub Actions</strong></p>
+                      <p>🔄 Atualizado automaticamente a cada push</p>
                   </div>
               </div>
           </body>
           </html>
           EOF
+          
+          echo "✅ Dynamic index page created with $(wc -l < available-branches.txt 2>/dev/null || echo 0) branches"
         
       - name: Setup Pages
         uses: actions/configure-pages@v4
