@@ -1,0 +1,1 @@
+Retrieving a product from the service
