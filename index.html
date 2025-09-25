@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Allure Reports - Spring Boot Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .branch-list { list-style: none; padding: 0; }
+        .branch-item { 
+            margin: 10px 0; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+            background: #f9f9f9;
+        }
+        .branch-item a { 
+            text-decoration: none; 
+            color: #0366d6; 
+            font-weight: bold;
+        }
+        .branch-item a:hover { text-decoration: underline; }
+        .timestamp { color: #666; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Allure Test Reports</h1>
+    <p>Relatórios de teste por branch:</p>
+    <ul class="branch-list">
+        <li class="branch-item">
+            <a href="./main/">📋 Main Branch</a>
+            <div class="timestamp">Branch principal - Produção</div>
+        </li>
+        <li class="branch-item">
+            <a href="./develop/">🚧 Develop Branch</a>
+            <div class="timestamp">Branch de desenvolvimento</div>
+        </li>
+    </ul>
+    <hr>
+    <p><small>Última atualização: $(date)</small></p>
+</body>
+</html>
