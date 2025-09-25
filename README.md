@@ -82,72 +82,39 @@ allure serve target/allure-results
 
 This command will generate the report and open it in your default web browser.
 
-## GitHub Actions Integration
+## 🚀 GitHub Actions Integration
 
-This project includes GitHub Actions workflows for automated testing and Allure report generation:
+Este projeto está configurado com GitHub Actions para executar testes automaticamente e gerar relatórios Allure.
 
-### 🚀 CI Workflow (`.github/workflows/ci.yml`)
+### Workflows Disponíveis
 
-Automatically runs on push/PR to main branch:
-- Executes all tests
-- Generates Allure reports
-- Uploads artifacts (results and reports)
-- Deploys to GitHub Pages (main branch only)
+1. **CI with Allure Reports** (`ci.yml`): Executa testes e gera artefatos
+2. **Deploy Allure Reports by Branch** (`branch-pages.yml`): Deploy de relatórios por branch
 
-### 📊 Viewing Allure Reports in GitHub Actions
+### 📊 Visualização de Relatórios por Branch
 
-#### Option 1: GitHub Pages (Recommended)
-1. Enable GitHub Pages in repository settings
-2. Push to main branch
-3. Access reports at: `https://[username].github.io/[repository]/allure-report`
+Os relatórios Allure são automaticamente publicados no GitHub Pages organizados por branch:
 
-#### Option 2: Download Artifacts
-1. Go to Actions tab in your repository
-2. Click on a workflow run
-3. Download "allure-report" artifact
-4. Extract and open `index.html` in browser
+- **Página Principal**: https://clebiovieira.github.io/spring-boot-allure-demo/
+- **Branch Main**: https://clebiovieira.github.io/spring-boot-allure-demo/main/
+- **Branch Develop**: https://clebiovieira.github.io/spring-boot-allure-demo/develop/
+- **Feature Branches**: https://clebiovieira.github.io/spring-boot-allure-demo/feature-nome/
 
-#### Option 3: Using GitHub CLI (Advanced)
-```bash
-# Install GitHub CLI
-brew install gh
+### 🔧 Configuração do GitHub Actions
 
-# Authenticate
-gh auth login
+Para habilitar os relatórios automáticos:
 
-# Use the provided script
-./scripts/download-allure-report.sh [owner] [repo] [run-id]
+1. Vá para **Settings** → **Pages** no seu repositório
+2. Em **Source**, selecione **GitHub Actions**
+3. Os workflows serão executados automaticamente nos pushes
 
-# Example:
-./scripts/download-allure-report.sh myuser spring-boot-allure-demo 1234567890
-```
+### ⚡ Funcionalidades dos Workflows
 
-### 📋 GitHub Actions Setup Steps
-
-1. **Enable GitHub Pages**:
-   - Go to Settings → Pages
-   - Source: GitHub Actions
-   - No additional configuration needed
-
-2. **Push your code**:
-   ```bash
-   git add .
-   git commit -m "Add Allure reporting with GitHub Actions"
-   git push origin main
-   ```
-
-3. **View Results**:
-   - Check Actions tab for workflow status
-   - Access reports via GitHub Pages URL
-   - Download artifacts if needed
-
-### 🔧 Workflow Features
-
-- **Caching**: Maven dependencies cached for faster builds
-- **Artifacts**: Both raw results and generated reports saved
-- **Retention**: Artifacts kept for 30 days
-- **Conditional Deploy**: Only deploys to Pages from main branch
-- **Always Upload**: Artifacts uploaded even if tests fail
+- **Cache do Maven**: Acelera builds subsequentes
+- **Upload de Artefatos**: Relatórios disponíveis por 30 dias
+- **Deploy Condicional**: Apenas branches específicas são publicadas
+- **Estrutura Organizada**: Cada branch tem seu próprio diretório
+- **Página de Índice**: Lista todos os relatórios disponíveis
 
 ## Allure Features Demonstrated
 

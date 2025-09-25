@@ -1,0 +1,99 @@
+name: Deploy Allure Reports by Branch
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages-${{ github.ref_name }}"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        
+    - name: Cache Maven dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+        
+    - name: Run tests
+      run: mvn clean test
+      
+    - name: Generate Allure Report
+      run: mvn allure:report
+      
+    - name: Create branch directory structure
+      run: |
+        mkdir -p ./pages-output/${{ github.ref_name }}
+        cp -r ./target/allure-report/* ./pages-output/${{ github.ref_name }}/
+        
+    - name: Create index page for branches
+      run: |
+        cat > ./pages-output/index.html << 'EOF'
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Allure Reports - Spring Boot Demo</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 40px; }
+                .branch-list { list-style: none; padding: 0; }
+                .branch-item { 
+                    margin: 10px 0; 
+                    padding: 15px; 
+                    border: 1px solid #ddd; 
+                    border-radius: 5px; 
+                    background: #f9f9f9;
+                }
+                .branch-item a { 
+                    text-decoration: none; 
+                    color: #0366d6; 
+                    font-weight: bold;
+                }
+                .branch-item a:hover { text-decoration: underline; }
+                .timestamp { color: #666; font-size: 0.9em; }
+            </style>
+        </head>
+        <body>
+            <h1>🧪 Allure Test Reports</h1>
+            <p>Relatórios de teste por branch:</p>
+            <ul class="branch-list">
+                <li class="branch-item">
+                    <a href="./main/">📋 Main Branch</a>
+                    <div class="timestamp">Branch principal - Produção</div>
+                </li>
+                <li class="branch-item">
+                    <a href="./develop/">🚧 Develop Branch</a>
+                    <div class="timestamp">Branch de desenvolvimento</div>
+                </li>
+            </ul>
+            <hr>
+            <p><small>Última atualização: $(date)</small></p>
+        </body>
+        </html>
+        EOF
+        
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./pages-output
+        keep_files: true
