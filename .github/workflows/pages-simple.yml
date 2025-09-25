@@ -40,13 +40,100 @@ jobs:
       - name: Generate Allure Report
         run: mvn allure:report
         
+      - name: Create directory structure for GitHub Pages
+        run: |
+          mkdir -p ./pages-output/${{ github.ref_name }}
+          cp -r ./target/allure-report/* ./pages-output/${{ github.ref_name }}/
+          
+      - name: Create index page
+        run: |
+          cat > ./pages-output/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Allure Reports - Spring Boot Demo</title>
+              <style>
+                  body { 
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                      margin: 40px auto; 
+                      max-width: 800px; 
+                      background: #f8f9fa;
+                  }
+                  .container { 
+                      background: white; 
+                      padding: 40px; 
+                      border-radius: 8px; 
+                      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                  }
+                  h1 { color: #2c3e50; margin-bottom: 30px; }
+                  .branch-list { list-style: none; padding: 0; }
+                  .branch-item { 
+                      margin: 15px 0; 
+                      padding: 20px; 
+                      border: 1px solid #e1e8ed; 
+                      border-radius: 6px; 
+                      background: #f8f9fa;
+                      transition: all 0.2s;
+                  }
+                  .branch-item:hover { 
+                      background: #e9ecef; 
+                      transform: translateY(-1px);
+                      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                  }
+                  .branch-item a { 
+                      text-decoration: none; 
+                      color: #0366d6; 
+                      font-weight: 600;
+                      font-size: 18px;
+                  }
+                  .branch-item a:hover { text-decoration: underline; }
+                  .description { color: #586069; margin-top: 8px; }
+                  .timestamp { 
+                      color: #6a737d; 
+                      font-size: 14px; 
+                      margin-top: 10px;
+                      font-style: italic;
+                  }
+                  .footer { 
+                      text-align: center; 
+                      margin-top: 40px; 
+                      padding-top: 20px; 
+                      border-top: 1px solid #e1e8ed;
+                      color: #6a737d;
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <h1>🧪 Allure Test Reports</h1>
+                  <p>Relatórios de teste organizados por branch:</p>
+                  <ul class="branch-list">
+                      <li class="branch-item">
+                          <a href="./main/">📋 Main Branch</a>
+                          <div class="description">Branch principal - Ambiente de produção</div>
+                          <div class="timestamp">Última atualização: $(date)</div>
+                      </li>
+                      <li class="branch-item">
+                          <a href="./develop/">🚧 Develop Branch</a>
+                          <div class="description">Branch de desenvolvimento - Novas funcionalidades</div>
+                          <div class="timestamp">Última atualização: $(date)</div>
+                      </li>
+                  </ul>
+                  <div class="footer">
+                      <p>🚀 Powered by <strong>Allure Framework</strong> & <strong>GitHub Actions</strong></p>
+                  </div>
+              </div>
+          </body>
+          </html>
+          EOF
+        
       - name: Setup Pages
         uses: actions/configure-pages@v4
         
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './target/allure-report'
+          path: './pages-output'
           
   deploy:
     environment:
