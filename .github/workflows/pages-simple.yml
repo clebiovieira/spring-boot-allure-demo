@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -106,16 +106,11 @@ jobs:
           <body>
               <div class="container">
                   <h1>🧪 Allure Test Reports</h1>
-                  <p>Relatórios de teste organizados por branch:</p>
+                  <p>Relatórios de teste da branch principal:</p>
                   <ul class="branch-list">
                       <li class="branch-item">
                           <a href="./main/">📋 Main Branch</a>
                           <div class="description">Branch principal - Ambiente de produção</div>
-                          <div class="timestamp">Última atualização: $(date)</div>
-                      </li>
-                      <li class="branch-item">
-                          <a href="./develop/">🚧 Develop Branch</a>
-                          <div class="description">Branch de desenvolvimento - Novas funcionalidades</div>
                           <div class="timestamp">Última atualização: $(date)</div>
                       </li>
                   </ul>
