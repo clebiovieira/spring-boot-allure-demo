@@ -1,11 +1,9 @@
-name: Deploy Allure Report to GitHub Pages
+name: Deploy Allure Report to Pages
 
 on:
-  workflow_run:
-    workflows: ["CI with Allure Reports"]
-    types:
-      - completed
-    branches: [main]
+  push:
+    branches: [ main ]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,8 +15,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+  build-and-deploy:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -41,11 +38,12 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
         
-    - name: Run tests and generate Allure report
-      run: |
-        mvn clean test
-        mvn allure:report
-        
+    - name: Run tests
+      run: mvn clean test
+      
+    - name: Generate Allure Report
+      run: mvn allure:report
+      
     - name: Setup Pages
       uses: actions/configure-pages@v4
       
