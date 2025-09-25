@@ -8,8 +8,6 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 jobs:
   test:
@@ -42,7 +40,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: allure-results
+        name: allure-results-${{ github.ref_name }}
         path: target/allure-results/
         retention-days: 30
         
@@ -50,6 +48,6 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: allure-report
+        name: allure-report-${{ github.ref_name }}
         path: target/allure-report/
         retention-days: 30
